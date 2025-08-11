@@ -1,2 +1,2 @@
 #!/bin/bash
-whois $1 | awk -F': ' '/^(Registrant|Admin|Tech)/ {sub(/^[ \t]+/, ""); gsub(/: /, ","); gsub(/[ \t]+/, " "); sub(/,$/, ""); print}' > $1.csv
+sudo whois $1 | awk 'BEGIN { FS=": "; OFS="," } /^(Registrant|Admin|Tech)/ {print $1, $2}' > $1.csv 
