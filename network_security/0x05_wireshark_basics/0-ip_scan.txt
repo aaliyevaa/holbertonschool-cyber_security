@@ -1,1 +1,1 @@
-ip && !(tcp || udp || icmp)
+icmp and icmp.type == 3 and icmp.code == 2
