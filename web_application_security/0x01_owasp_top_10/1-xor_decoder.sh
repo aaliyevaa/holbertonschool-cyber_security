@@ -9,7 +9,7 @@ fi
 # Remove the {xor} prefix
 encoded=$(echo "$1" | sed 's/{xor}//')
 
-# Base64 decode the input
+# Base64 decode into raw binary
 decoded=$(echo "$encoded" | base64 -d 2>/dev/null)
 
 # Check if base64 decoding succeeded
@@ -18,16 +18,21 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Define XOR key (you can modify this based on the actual key)
+# XOR key
 key=95
 
-# Perform XOR decoding by looping through each character
-decoded_message=""
-for (( i=0; i<${#decoded}; i++ )); do
-    char=$(printf "%d" "'${decoded:$i:1}")  # Get ASCII value of each char
-    xor_char=$(($char ^ $key))              # XOR with the key
-    decoded_message+=$(printf \\$(printf '%03o' "$xor_char"))  # Convert back to character
-done
+# Use a while-read loop to process binary data byte-by-byte
+# Use `xxd -p` to get hex dump of decoded binary
+output=""
+while IFS= read -r -n2 hex; do
+  # Convert hex to decimal
+  byte=$((16#$hex))
+  # XOR with the key
+  xor_byte=$((byte ^ key))
+  # Append to output
+  output+=$(printf "\\x%02x" "$xor_byte")
+done < <(echo -n "$decoded" | xxd -p -c1)
 
-# Output the decoded message
-echo "$decoded_message"
+# Output the final decoded message
+echo -ne "$output"
+
