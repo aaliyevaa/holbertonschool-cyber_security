@@ -1,31 +1,28 @@
 #!/bin/bash
 
-if [ -z "$1" ]; then
-    echo "Usage: $0 {xor}Base64Encoded"
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 '<encoded_string>'"
     exit 1
 fi
 
-input="${1#\{xor\}}"
-decoded=$(echo "$input" | base64 -d 2>/dev/null | xxd -p -c 256)
 
-if [ -z "$decoded" ]; then
-    echo "invalid"
-    exit 1
-fi
+encoded_string="$1"
+encoded_string="${encoded_string#'{xor}'}"
 
-key="WebASecureKey"
-keylen=${#key}
-i=0
-output=""
 
-while [ $i -lt $((${#decoded} / 2)) ]; do
-    hex_byte="${decoded:$((i * 2)):2}"
-    byte=$((16#$hex_byte))
-    k=$(printf "%d" "'${key:$((i % keylen)):1}")
-    xor=$((byte ^ k))
-    output="$output$(printf '\\x%02x' $xor)"
-    i=$((i + 1))
-done
+decoded_string=$(python3 -c "
+import sys
+from base64 import b64decode
 
-echo -e "$output"
+try:
+    encoded = sys.argv[1]
+    decoded = b64decode(encoded)
+    result = ''.join(chr(byte ^ 0x5f) for byte in decoded)
+    print(result)
+except Exception:
+    print('Error: Invalid input')
+    sys.exit(1)
+" "$encoded_string")
 
+
+echo "$decoded_string"
