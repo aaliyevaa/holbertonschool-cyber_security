@@ -1,35 +1,36 @@
 #!/bin/bash
 
-# Check if argument is provided
 if [ -z "$1" ]; then
-    echo "Usage: $0 {xor}Base64EncodedString"
+    echo "Usage: $0 {xor}Base64Encoded"
     exit 1
 fi
 
-# Extract base64 part (remove {xor} prefix)
-input="${1#\{xor\}}"
+# Remove the {xor} prefix
+encoded="${1#\{xor\}}"
 
-# Decode base64
-decoded=$(echo "$input" | base64 -d 2>/dev/null)
-if [ $? -ne 0 ]; then
-    echo "Invalid base64 string"
+# Decode base64 input
+decoded=$(echo "$encoded" | base64 -d 2>/dev/null)
+
+if [ -z "$decoded" ]; then
+    echo "invalid"
     exit 1
 fi
 
-# XOR key (used in WebSphere)
+# XOR key
 key="WebASecureKey"
-key_length=${#key}
+key_len=${#key}
+decoded_len=${#decoded}
 
-# Perform XOR decoding
-output=""
-for (( i=0; i<${#decoded}; i++ )); do
-    c=${decoded:i:1}
-    k=${key:i % key_length:1}
-    xor=$(printf "%d" "'$c")
-    key_byte=$(printf "%d" "'$k")
-    result=$(( xor ^ key_byte ))
-    output+=$(printf "\\x%02x" "$result")
+# XOR decode character by character
+i=0
+result=""
+while [ $i -lt $decoded_len ]; do
+    char=$(printf "%d" "'${decoded:$i:1}")
+    key_char=$(printf "%d" "'${key:$((i % key_len)):1}")
+    xor_val=$((char ^ key_char))
+    result="${result}$(printf \\$(printf '%03o' "$xor_val"))"
+    i=$((i + 1))
 done
 
-# Print the decoded result
-echo -e "$output"
+# Output the decoded result
+echo "$result"
