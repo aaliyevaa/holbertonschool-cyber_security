@@ -5,27 +5,25 @@ if [ "$1" = "" ]; then
     exit 1
 fi
 
-encoded="${1#\{xor\}}"
+input="${1#\{xor\}}"
+decoded=$(echo "$input" | base64 -d 2>/dev/null)
 
-decoded=$(echo "$encoded" | base64 -d 2>/dev/null)
-
-if [ "$decoded" = "" ]; then
+if [ "$?" -ne 0 ] || [ -z "$decoded" ]; then
     echo "invalid"
     exit 1
 fi
 
 key="WebASecureKey"
 keylen=${#key}
+out=""
 i=0
-output=""
 
-while [ $i -lt ${#decoded} ]; do
-    d_char=$(printf "%d" "'$(printf '%s' "$decoded" | cut -b $((i + 1)))")
-    k_char=$(printf "%d" "'${key:$((i % keylen)):1}")
-    xor=$((d_char ^ k_char))
-    output="${output}$(printf \\$(printf '%03o' $xor))"
+while [ $i -lt "${#decoded}" ]; do
+    d=$(printf "%d" "'$(printf '%s' "$decoded" | dd bs=1 count=1 skip=$i 2>/dev/null)'")
+    k=$(printf "%d" "'${key:$((i % keylen)):1}")
+    xor=$((d ^ k))
+    out="${out}$(printf '\\x%02x' $xor)"
     i=$((i + 1))
 done
 
-echo "$output"
-
+echo -e "$out"
